@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	_ "github.com/ziutek/mymysql/godrv"
+	// MySQL database driver
+	"github.com/go-sql-driver/mysql"
 )
 
 type Env struct {

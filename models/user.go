@@ -27,7 +27,7 @@ func (db *DB) CreateUser(user *User) (int64, error) {
 		return -1, err
 	}
 
-	user.Password, err = HashPassword(user.Password)
+	user.Password, err = hashPassword(user.Password)
 	if err != nil {
 		return -1, err
 	}
