@@ -3,25 +3,22 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"karen/models"
-	"database/sql"
+	"log"
 	"net/http"
-	"time"
 
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
-var (
-	rc             *http.Client
-	karenAuth      = "/karen/api/auth"
-	privateKeyPath = "id_rsa"
-	whitelist      = []string{"/karen/api/auth", "/karen"}
-)
+type Env struct {
+	DB models.Datastore
+}
 
 func init() {
-	rc = &http.Client{
-		Timeout: time.Second * 10,
-	}
 }
 
 func internalServerError(w http.ResponseWriter, err error) {
@@ -30,14 +27,13 @@ func internalServerError(w http.ResponseWriter, err error) {
 	http.Error(w, errMsg, http.StatusInternalServerError)
 }
 
-func (env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
+func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	reqUser := &models.User{}
-	if err := parseJSON(w, r.Body, reqUser); err != nil{
+	if err := parseJSON(w, r.Body, reqUser); err != nil {
 		return
 	}
 
-	if reqUser.Name == "" || reqUser.Email == "" || reqUser.Password == ""
-	{
+	if reqUser.Name == "" || reqUser.Email == "" || reqUser.Password == "" {
 		errMsg := "Request body is missing field(s)"
 		log.Println(errMsg)
 		http.Error(w, errMsg, http.StatusBadRequest)
@@ -51,6 +47,7 @@ func (env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reqUser.ID = userID
+	reqUser.Password = ""
 	location := fmt.Sprintf("%s/%d", r.URL.Path, userID)
 	w.Header().Add("Location", location)
 	w.Header().Add("Content-Type", "application/json")

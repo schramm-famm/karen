@@ -3,11 +3,12 @@ package models
 import (
 	"database/sql"
 
-	_ "github.com/lib/pq"
+	// MySQL database driver
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type Datastore interface {
-	AllUsers() ([]*User, error)
+	CreateUser(user *User) (int64, error)
 }
 
 type DB struct {
@@ -15,7 +16,7 @@ type DB struct {
 }
 
 func NewDB(dataSourceName string) (*DB, error) {
-	db, err := sql.Open("postgres", dataSourceName)
+	db, err := sql.Open("mysql", dataSourceName)
 	if err != nil {
 		return nil, err
 	}
