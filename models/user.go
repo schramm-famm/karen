@@ -17,8 +17,7 @@ type User struct {
 }
 
 const (
-	usersTable    string = "users"
-	PW_SALT_BYTES        = 32
+	usersTable string = "users"
 )
 
 //Creates a user instance in the db and returns the user's id and the error
@@ -78,12 +77,12 @@ func (db *DB) CheckUser(email String, password String) ([]*User, error) {
 
 }
 */
-func HashPassword(password string) (string, error) {
+func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
 }
 
-func CheckPasswordHash(password, hash string) bool {
+func checkPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }

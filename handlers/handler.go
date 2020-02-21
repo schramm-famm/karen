@@ -18,9 +18,6 @@ type Env struct {
 	DB models.Datastore
 }
 
-func init() {
-}
-
 func internalServerError(w http.ResponseWriter, err error) {
 	errMsg := "Internal Server Error"
 	log.Println(errMsg + ": " + err.Error())
@@ -42,7 +39,14 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := env.DB.CreateUser(reqUser)
 	if err != nil {
-		internalServerError(w, err)
+		mySQLErr, ok := err.(*mysql.MySQLError)
+		if ok && mySQLErr.Number == 1062 {
+			errMsg := fmt.Sprintf("User already exists with email %s", reqUser.Email)
+			log.Println(errMsg)
+			http.Error(w, errMsg, http.StatusConflict)
+		} else {
+			internalServerError(w, err)
+		}
 		return
 	}
 
@@ -53,7 +57,6 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(reqUser)
-
 }
 
 func parseJSON(w http.ResponseWriter, body io.ReadCloser, bodyObj interface{}) error {
