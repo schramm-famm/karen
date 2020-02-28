@@ -37,7 +37,6 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
-	user := &models.User{}
 	user, err := env.DB.CheckUser(reqUser)
 	if err != nil {
 		mySQLErr, ok := err.(*mysql.MySQLError)
@@ -46,9 +45,8 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(errMsg)
 			http.Error(w, errMsg, http.StatusNotFound)
 		} else if err.Error() == "password incorrect" {
-			errMsg := fmt.Sprintf("Password incorrect")
-			log.Println(errMsg)
-			http.Error(w, errMsg, http.StatusUnauthorized)
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 		} else {
 			internalServerError(w, err)
 		}
@@ -57,12 +55,9 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 	reqUser.ID = user.ID
 	reqUser.Name = user.Name
 	reqUser.Password = ""
-	location := fmt.Sprintf("%s/%d", r.URL.Path, user.ID)
-	w.Header().Add("Location", location)
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(reqUser)
-
 }
 
 func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
