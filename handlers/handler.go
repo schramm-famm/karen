@@ -55,8 +55,6 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 	reqUser.ID = user.ID
 	reqUser.Name = user.Name
 	reqUser.Password = ""
-	location := fmt.Sprintf("%s/%d", r.URL.Path, user.ID)
-	w.Header().Add("Location", location)
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(reqUser)
