@@ -31,8 +31,7 @@ func (db *DB) CheckUser(user *User) (*User, error) {
 	}
 	err := checkPasswordHash(user.Password, userFromDB.Password)
 	if err != nil {
-		err := errors.New("password incorrect")
-		return nil, err
+		return nil, errors.New("password incorrect")
 	}
 	return userFromDB, err
 }
