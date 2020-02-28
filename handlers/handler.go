@@ -37,7 +37,6 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
-	user := &models.User{}
 	user, err := env.DB.CheckUser(reqUser)
 	if err != nil {
 		mySQLErr, ok := err.(*mysql.MySQLError)
