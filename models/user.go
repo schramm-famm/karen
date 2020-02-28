@@ -25,11 +25,12 @@ const (
 func (db *DB) CheckUser(user *User) (*User, error) {
 	userFromDB := &User{}
 	queryString := fmt.Sprintf("SELECT ID, Name, Password FROM %s WHERE EMAIL=?", usersTable)
-	if err := db.QueryRow(queryString, user.Email).Scan(&(userFromDB.ID),
-		&(userFromDB.Name), &(userFromDB.Password)); err != nil {
+	err := db.QueryRow(queryString, user.Email).Scan(&(userFromDB.ID),
+		&(userFromDB.Name), &(userFromDB.Password))
+	if err != nil {
 		return nil, err
 	}
-	err := checkPasswordHash(user.Password, userFromDB.Password)
+	err = checkPasswordHash(user.Password, userFromDB.Password)
 	if err != nil {
 		err := errors.New("password incorrect")
 		return nil, err
