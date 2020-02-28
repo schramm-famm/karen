@@ -45,9 +45,8 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(errMsg)
 			http.Error(w, errMsg, http.StatusNotFound)
 		} else if err.Error() == "password incorrect" {
-			errMsg := fmt.Sprintf("Password incorrect")
-			log.Println(errMsg)
-			http.Error(w, errMsg, http.StatusUnauthorized)
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 		} else {
 			internalServerError(w, err)
 		}
