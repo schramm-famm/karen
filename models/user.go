@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -19,6 +20,22 @@ type User struct {
 const (
 	usersTable string = "users"
 )
+
+//Authenticates the user's credentials and returns the user
+func (db *DB) CheckUser(user *User) (*User, error) {
+	userFromDB := &User{}
+	queryString := fmt.Sprintf("SELECT ID, Name, Password FROM %s WHERE EMAIL=?", usersTable)
+	if err := db.QueryRow(queryString, user.Email).Scan(&(userFromDB.ID),
+		&(userFromDB.Name), &(userFromDB.Password)); err != nil {
+		return nil, err
+	}
+	err := checkPasswordHash(user.Password, userFromDB.Password)
+	if err != nil {
+		err := errors.New("password incorrect")
+		return nil, err
+	}
+	return userFromDB, err
+}
 
 //Creates a user instance in the db and returns the user's id and the error
 func (db *DB) CreateUser(user *User) (int64, error) {
@@ -72,17 +89,13 @@ func (db *DB) UpdateUser(user User) ([]*User, error) {
 func (db *DB) DeleteUser(user User) error {
 
 }
-
-func (db *DB) CheckUser(email String, password String) ([]*User, error) {
-
-}
 */
+
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
 }
 
-func checkPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+func checkPasswordHash(password, hash string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }

@@ -9,6 +9,7 @@ import (
 
 type Datastore interface {
 	CreateUser(user *User) (int64, error)
+	CheckUser(user *User) (*User, error)
 }
 
 type DB struct {

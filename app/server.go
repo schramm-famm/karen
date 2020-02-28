@@ -36,7 +36,7 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/karen/v1/users", env.PostUserHandler).Methods("POST")
-
+	r.HandleFunc("/karen/v1/users/auth", env.PostAuthHandler).Methods("POST")
 	r.Use(logging)
 
 	httpSrv := &http.Server{
