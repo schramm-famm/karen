@@ -26,6 +26,40 @@ func internalServerError(w http.ResponseWriter, err error) {
 	http.Error(w, errMsg, http.StatusInternalServerError)
 }
 
+func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
+	reqUser := &models.User{}
+	if err := parseJSON(w, r.Body, reqUser); err != nil {
+		return
+	}
+	if reqUser.Email == "" || reqUser.Password == "" {
+		errMsg := "Request body is missing field(s)"
+		log.Println(errMsg)
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+	user, err := env.DB.CheckUser(reqUser)
+	if err != nil {
+		mySQLErr, ok := err.(*mysql.MySQLError)
+		if ok && mySQLErr.Number == 1065 {
+			errMsg := fmt.Sprintf("User with email %s was not found", reqUser.Email)
+			log.Println(errMsg)
+			http.Error(w, errMsg, http.StatusNotFound)
+		} else if err.Error() == "password incorrect" {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+		} else {
+			internalServerError(w, err)
+		}
+		return
+	}
+	reqUser.ID = user.ID
+	reqUser.Name = user.Name
+	reqUser.Password = ""
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(reqUser)
+}
+
 func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	reqUser := &models.User{}
 	if err := parseJSON(w, r.Body, reqUser); err != nil {
