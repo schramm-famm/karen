@@ -38,6 +38,36 @@ func (db *DB) CheckUser(user *User) (*User, error) {
 	return userFromDB, err
 }
 
+func (db *DB) UpdateUser(user *User) (*User, error) {
+	queryString := fmt.Sprintf("UPDATE %s SET ", usersTable)
+	if user.AvatarURL != "" {
+		queryString += fmt.Sprintf("AvatarURL='%s'", user.AvatarURL)
+	}
+	if user.Name != "" {
+		if user.AvatarURL != "" {
+			queryString += fmt.Sprintf(", ")
+		}
+		queryString += fmt.Sprintf("Name='%s'", user.Name)
+	}
+	if user.Password != "" {
+		if user.AvatarURL != "" || user.Name != "" {
+			queryString += fmt.Sprintf(", ")
+		}
+		hashedPassword, err := hashPassword(user.Password)
+		if err != nil {
+			return nil, err
+		}
+		queryString += fmt.Sprintf("Password='%s'", hashedPassword)
+	}
+	queryString += fmt.Sprintf(" where Email=?")
+
+	_, err := db.Exec(queryString, user.Email)
+	if err != nil {
+		return nil, err
+	}
+	return user, err
+}
+
 //Creates a user instance in the db and returns the user's id and the error
 func (db *DB) CreateUser(user *User) (int64, error) {
 	tx, err := db.Begin()
@@ -96,10 +126,6 @@ func (db *DB) ReadUser(userID int64) (*User, error) {
 }
 
 /*
-func (db *DB) UpdateUser(user User) ([]*User, error) {
-
-}
-
 func (db *DB) DeleteUser(user User) error {
 
 }
