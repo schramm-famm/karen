@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -49,9 +50,9 @@ func (db *DB) CreateUser(user *User) (int64, error) {
 		return -1, err
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "INSERT INTO %s(Name, Email, Password) ", usersTable)
-	fmt.Fprintf(&b, "VALUES(?, ?, ?)")
-	res, err := tx.Exec(b.String(), user.Name, user.Email, user.Password)
+	fmt.Fprintf(&b, "INSERT INTO %s(Name, Email, Password, AvatarURL) ", usersTable)
+	fmt.Fprintf(&b, "VALUES(?, ?, ?, ?)")
+	res, err := tx.Exec(b.String(), user.Name, user.Email, user.Password, user.AvatarURL)
 	if err != nil {
 		tx.Rollback()
 		return -1, err
@@ -77,11 +78,24 @@ func (db *DB) CreateUser(user *User) (int64, error) {
 	return userID, err
 }
 
-/*
-func (db *DB) ReadUser(user User) ([]*User, error) {
+//ReadUser returns one user from the database given userID
+func (db *DB) ReadUser(userID int64) (*User, error) {
 
+	user := &User{}
+	queryString := fmt.Sprintf("SELECT * FROM %s WHERE ID=?", usersTable)
+
+	err := db.QueryRow(queryString, userID).Scan(&(user.ID), &(user.Name), &(user.Email), &(user.Password), &(user.AvatarURL))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, err
+	}
+	log.Printf(`Read 1 row from "%s"`, usersTable)
+	return user, nil
 }
 
+/*
 func (db *DB) UpdateUser(user User) ([]*User, error) {
 
 }
