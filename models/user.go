@@ -39,29 +39,30 @@ func (db *DB) CheckUser(user *User) (*User, error) {
 }
 
 func (db *DB) UpdateUser(user *User) (*User, error) {
-	queryString := fmt.Sprintf("UPDATE %s SET ", usersTable)
+	var b strings.Builder
+	fmt.Fprintf(&b, "UPDATE %s SET ", usersTable)
 	if user.AvatarURL != "" {
-		queryString += fmt.Sprintf("AvatarURL='%s'", user.AvatarURL)
+		fmt.Fprintf(&b, "AvatarURL='%s'", user.AvatarURL)
 	}
 	if user.Name != "" {
 		if user.AvatarURL != "" {
-			queryString += fmt.Sprintf(", ")
+			fmt.Fprintf(&b, ", ")
 		}
-		queryString += fmt.Sprintf("Name='%s'", user.Name)
+		fmt.Fprintf(&b, "Name='%s'", user.Name)
 	}
 	if user.Password != "" {
 		if user.AvatarURL != "" || user.Name != "" {
-			queryString += fmt.Sprintf(", ")
+			fmt.Fprintf(&b, ", ")
 		}
 		hashedPassword, err := hashPassword(user.Password)
 		if err != nil {
 			return nil, err
 		}
-		queryString += fmt.Sprintf("Password='%s'", hashedPassword)
+		fmt.Fprintf(&b, "Password='%s'", hashedPassword)
 	}
-	queryString += fmt.Sprintf(" where Email=?")
+	fmt.Fprintf(&b, " where Email=?")
 
-	_, err := db.Exec(queryString, user.Email)
+	_, err := db.Exec(b.String(), user.Email)
 	if err != nil {
 		return nil, err
 	}
