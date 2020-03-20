@@ -39,14 +39,14 @@ jobs:
           echo "::set-env name=IMAGE_EXISTS::true"
 
       - name: Terraform Init
-        uses: schramm-famm/terraform-github-actions@master
+        uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: 0.12.13
           tf_actions_subcommand: init
           tf_actions_working_dir: ${{ env.TF_DIR }}
 
       - name: Terraform Apply
-        uses: schramm-famm/terraform-github-actions@master
+        uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: 0.12.13
           tf_actions_subcommand: apply
@@ -60,7 +60,7 @@ jobs:
 
       - name: Terraform Destroy
         if: always()
-        uses: schramm-famm/terraform-github-actions@master
+        uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: 0.12.13
           tf_actions_subcommand: destroy
