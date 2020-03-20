@@ -40,7 +40,7 @@ resource "aws_security_group" "karen" {
 module "karen" {
   source          = "./modules/karen"
   name            = var.name
-  container_tag   = "0.1.0"
+  container_tag   = var.container_tag
   cluster_id      = module.ecs_cluster.cluster_id
   security_groups = [aws_security_group.karen.id]
   subnets         = module.ecs_base.vpc_public_subnets
