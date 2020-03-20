@@ -12,5 +12,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix nocgo -o /tmp ./...
 FROM scratch
 WORKDIR /
 COPY --from=builder /tmp/* ./
+COPY dbSchema.sql ./
 EXPOSE 80
 ENTRYPOINT ["/app"]

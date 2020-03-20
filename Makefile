@@ -4,7 +4,6 @@ TAG?=latest
 KAREN_DB_LOCATION?=localhost:3306
 KAREN_DB_USERNAME?=karen
 KAREN_DB_PASSWORD?=karen
-KAREN_DB_DATABASE?=karen
 HELP_FUNC = \
     %help; \
     while(<>) { \
@@ -40,7 +39,6 @@ run: build 			## build and run the app binaries
 	export KAREN_DB_LOCATION=$(KAREN_DB_LOCATION) && \
 		export KAREN_DB_USERNAME=$(KAREN_DB_USERNAME) && \
 		export KAREN_DB_PASSWORD=$(KAREN_DB_PASSWORD) && \
-		export KAREN_DB_DATABASE=$(KAREN_DB_DATABASE) && \
 		./tmp/app
 
 docker: tmp 		## build the docker image
@@ -52,7 +50,6 @@ docker-run: docker 	## start the built docker image in a container
 		-e KAREN_DB_LOCATION=$(KAREN_DB_LOCATION) \
 		-e KAREN_DB_USERNAME=$(KAREN_DB_USERNAME) \
 		-e KAREN_DB_PASSWORD=$(KAREN_DB_PASSWORD) \
-		-e KAREN_DB_DATABASE=$(KAREN_DB_DATABASE) \
 		--name $(APP_NAME) $(REGISTRY)/$(APP_NAME):$(TAG)
 
 docker-push: tmp docker
