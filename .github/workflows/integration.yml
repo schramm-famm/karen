@@ -1,6 +1,6 @@
 name: Build & Integration Test
 on:
-  - push
+  - pull_request
 jobs:
   testing:
     name: Build & Integration Test
