@@ -38,6 +38,7 @@ func main() {
 	r.HandleFunc("/karen/v1/users", env.PostUserHandler).Methods("POST")
 	r.HandleFunc("/karen/v1/users/auth", env.PostAuthHandler).Methods("POST")
 	r.HandleFunc("/karen/v1/users/self", env.GetUserHandler).Methods("GET")
+	r.HandleFunc("/karen/v1/users/{user-id}", env.GetUserHandler).Methods("GET")
 	r.Use(logging)
 
 	httpSrv := &http.Server{

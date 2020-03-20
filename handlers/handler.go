@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	_ "github.com/ziutek/mymysql/godrv"
 	// MySQL database driver
 	"github.com/go-sql-driver/mysql"
@@ -98,7 +99,15 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetUserHandler gets a user returning specified columns
 func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
+	vars := mux.Vars(r)
+	var userID int64
+	var err error
+	if vars["user-id"] != "" {
+		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
+
+	} else {
+		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
+	}
 	if err != nil {
 		errMsg := "Invalid user ID"
 		log.Println(errMsg + ": " + err.Error())
@@ -126,15 +135,16 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 		responseUser.Password = ""
 	} else {
 		for _, column := range includes {
-			if column == "id" {
+			switch column {
+			case "id":
 				responseUser.ID = user.ID
-			} else if column == "name" {
+			case "name":
 				responseUser.Name = user.Name
-			} else if column == "email" {
+			case "email":
 				responseUser.Email = user.Email
-			} else if column == "avatar_url" {
+			case "avatar_url":
 				responseUser.AvatarURL = user.AvatarURL
-			} else {
+			default:
 				errMsg := "Invalid includes format"
 				http.Error(w, errMsg, http.StatusBadRequest)
 				return
