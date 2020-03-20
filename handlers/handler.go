@@ -122,10 +122,8 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	includes := r.Form["includes"]
 	if includes == nil {
-		responseUser.ID = user.ID
-		responseUser.Name = user.Name
-		responseUser.Email = user.Email
-		responseUser.AvatarURL = user.AvatarURL
+		responseUser = user
+		responseUser.Password = ""
 	} else {
 		for _, column := range includes {
 			if column == "id" {
