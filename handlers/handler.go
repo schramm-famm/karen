@@ -108,7 +108,7 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, err := env.DB.ReadUser(userID)
 	if user == nil {
-		errMsg := "User-ID not found"
+		errMsg := "User not found"
 		log.Println(errMsg + ": " + err.Error())
 		http.Error(w, errMsg, http.StatusNotFound)
 		return
@@ -121,7 +121,12 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	responseUser := &models.User{}
 	r.ParseForm()
 	includes := r.Form["includes"]
-	if includes != nil {
+	if includes == nil {
+		responseUser.ID = user.ID
+		responseUser.Name = user.Name
+		responseUser.Email = user.Email
+		responseUser.AvatarURL = user.AvatarURL
+	} else {
 		for _, column := range includes {
 			if column == "id" {
 				responseUser.ID = user.ID
@@ -129,8 +134,6 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 				responseUser.Name = user.Name
 			} else if column == "email" {
 				responseUser.Email = user.Email
-			} else if column == "password" {
-				responseUser.Password = user.Password
 			} else if column == "avatar_url" {
 				responseUser.AvatarURL = user.AvatarURL
 			} else {
@@ -140,9 +143,7 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
 	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(responseUser)
 }
 
