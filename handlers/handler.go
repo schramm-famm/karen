@@ -104,7 +104,6 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if vars["user-id"] != "" {
 		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
-
 	} else {
 		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
 	}
