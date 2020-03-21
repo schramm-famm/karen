@@ -10,7 +10,9 @@ import (
 	"karen/models"
 	"log"
 	"net/http"
+	"strconv"
 
+	"github.com/gorilla/mux"
 	_ "github.com/ziutek/mymysql/godrv"
 	// MySQL database driver
 	"github.com/go-sql-driver/mysql"
@@ -93,6 +95,63 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(reqUser)
+}
+
+// GetUserHandler gets a user returning specified columns
+func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	var userID int64
+	var err error
+	if vars["user-id"] != "" {
+		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
+	} else {
+		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
+	}
+	if err != nil {
+		errMsg := "Invalid user ID"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	user, err := env.DB.ReadUser(userID)
+	if user == nil {
+		errMsg := "User not found"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	responseUser := &models.User{}
+	r.ParseForm()
+	includes := r.Form["includes"]
+	if includes == nil {
+		responseUser = user
+		responseUser.Password = ""
+	} else {
+		for _, column := range includes {
+			switch column {
+			case "id":
+				responseUser.ID = user.ID
+			case "name":
+				responseUser.Name = user.Name
+			case "email":
+				responseUser.Email = user.Email
+			case "avatar_url":
+				responseUser.AvatarURL = user.AvatarURL
+			default:
+				errMsg := "Invalid includes format"
+				http.Error(w, errMsg, http.StatusBadRequest)
+				return
+			}
+		}
+	}
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseUser)
 }
 
 func parseJSON(w http.ResponseWriter, body io.ReadCloser, bodyObj interface{}) error {

@@ -13,6 +13,7 @@ import (
 type Datastore interface {
 	CreateUser(user *User) (int64, error)
 	CheckUser(user *User) (*User, error)
+	ReadUser(userID int64) (*User, error)
 }
 
 // DB represents an SQL database connection.
