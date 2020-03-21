@@ -59,7 +59,7 @@ jobs:
           echo HOST=$HOST
           cd -
           npm i
-          node test/wait.js
+          node wait.js
           npm test
 
       - name: Terraform Destroy
