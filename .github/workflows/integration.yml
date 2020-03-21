@@ -57,6 +57,7 @@ jobs:
           cd $TF_DIR
           export HOST=$(terraform output host)
           echo HOST=$HOST
+          cd -
           npm i
           node test/wait.js
           npm test
