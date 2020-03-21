@@ -1,6 +1,6 @@
 name: Build & Integration Test
 on:
-  - pull_request
+  - push
 jobs:
   testing:
     name: Build & Integration Test
@@ -56,7 +56,8 @@ jobs:
         run: |
           cd $TF_DIR
           export HOST=$(terraform output host)
-          echo $HOST
+          echo HOST=$HOST
+          npm test
 
       - name: Terraform Destroy
         if: always()
