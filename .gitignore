@@ -19,3 +19,5 @@ tmp/
 *.tfstate
 *.tfstate.backup
 .terraform
+
+node_modules
