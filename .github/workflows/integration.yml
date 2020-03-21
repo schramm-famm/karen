@@ -58,6 +58,7 @@ jobs:
           export HOST=$(terraform output host)
           echo HOST=$HOST
           npm i
+          npm test/wait.js
           npm test
 
       - name: Terraform Destroy
