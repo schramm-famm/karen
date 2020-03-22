@@ -61,6 +61,6 @@ ifneq ("$(shell docker container list -a | grep $(APP_NAME))", "")
 	docker rm -f $(APP_NAME)
 endif
 	docker system prune
-ifneq ("$(shell docker images | grep $(APP_NAME) | awk '{ print $$3; }')", "") 
+ifneq ("$(shell docker images | grep $(APP_NAME) | awk '{ print $$3; }')", "")
 	docker images | grep $(APP_NAME) | awk '{ print $$3; }' | xargs -I {} docker rmi -f {}
 endif

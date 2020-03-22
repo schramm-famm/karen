@@ -60,9 +60,9 @@ func (db *DB) UpdateUser(user *User) (*User, error) {
 		}
 		fmt.Fprintf(&b, "Password='%s'", hashedPassword)
 	}
-	fmt.Fprintf(&b, " where Email=?")
+	fmt.Fprintf(&b, " where ID=?")
 
-	_, err := db.Exec(b.String(), user.Email)
+	_, err := db.Exec(b.String(), user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (db *DB) ReadUser(userID int64) (*User, error) {
 	user := &User{}
 	queryString := fmt.Sprintf("SELECT * FROM %s WHERE ID=?", usersTable)
 
-	err := db.QueryRow(queryString, userID).Scan(&(user.ID), &(user.Name), &(user.Email), &(user.Password), &(user.AvatarURL))
+	err := db.QueryRow(queryString, userID).Scan(&(user.ID), &(user.Email), &(user.Name), &(user.Password), &(user.AvatarURL))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, err

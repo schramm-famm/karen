@@ -21,11 +21,10 @@ func logging(f http.Handler) http.Handler {
 
 func main() {
 	connectionString := fmt.Sprintf(
-		"%s:%s@tcp(%s)/%s?interpolateParams=true",
+		"%s:%s@tcp(%s)/?interpolateParams=true",
 		os.Getenv("KAREN_DB_USERNAME"),
 		os.Getenv("KAREN_DB_PASSWORD"),
-		os.Getenv("KAREN_DB_LOCATION"),
-		os.Getenv("KAREN_DB_DATABASE"))
+		os.Getenv("KAREN_DB_LOCATION"))
 	db, err := models.NewDB(connectionString)
 	if err != nil {
 		log.Fatal(err)
@@ -38,7 +37,7 @@ func main() {
 	r.HandleFunc("/karen/v1/users/auth", env.PostAuthHandler).Methods("POST")
 	r.HandleFunc("/karen/v1/users/self", env.GetUserHandler).Methods("GET")
 	r.HandleFunc("/karen/v1/users/{user-id}", env.GetUserHandler).Methods("GET")
-	r.HandleFunc("/karen/v1/users/self", env.PostUserHandler).Methods("POST")
+	r.HandleFunc("/karen/v1/users", env.PostUserHandler).Methods("POST")
 	r.HandleFunc("/karen/v1/users/self", env.PatchUserHandler).Methods("PATCH")
 	r.Use(logging)
 

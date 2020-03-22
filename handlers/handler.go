@@ -103,16 +103,18 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // PatchUserHandler updates specific columns of given user
 func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
+	userId, err := getUserID(r)
+	if err != nil {
+		errMsg := "Invalid user ID"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
 	reqUser := &models.User{}
 	if err := parseJSON(w, r.Body, reqUser); err != nil {
 		return
 	}
-	if reqUser.Email == "" {
-		errMsg := missingFieldMessage
-		log.Println(errMsg)
-		http.Error(w, errMsg, http.StatusBadRequest)
-		return
-	}
+	reqUser.ID = userId
 	if reqUser.Name == "" && reqUser.Password == "" && reqUser.AvatarURL == "" {
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(reqUser)
@@ -139,14 +141,7 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetUserHandler gets a user returning specified columns
 func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	var userID int64
-	var err error
-	if vars["user-id"] != "" {
-		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
-	} else {
-		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
-	}
+	userID, err := getUserID(r)
 	if err != nil {
 		errMsg := "Invalid user ID"
 		log.Println(errMsg + ": " + err.Error())
@@ -211,4 +206,16 @@ func parseJSON(w http.ResponseWriter, body io.ReadCloser, bodyObj interface{}) e
 	}
 
 	return nil
+}
+
+func getUserID(r *http.Request) (int64, error) {
+	vars := mux.Vars(r)
+	var userID int64
+	var err error
+	if vars["user-id"] != "" {
+		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
+	} else {
+		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
+	}
+	return userID, err
 }
