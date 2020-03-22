@@ -136,6 +136,8 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "application/json")
+	retUser.ID = int64(0)
+	retUser.Password = ""
 	json.NewEncoder(w).Encode(retUser)
 }
 
