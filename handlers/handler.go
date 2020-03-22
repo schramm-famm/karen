@@ -121,7 +121,15 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	retUser, err := env.DB.UpdateUser(reqUser)
 	if err != nil {
-		internalServerError(w, err)
+		mySQLErr, ok := err.(*mysql.MySQLError)
+		println("code = " + string(mySQLErr.Number))
+		if ok && mySQLErr.Number == 1065 {
+			errMsg := fmt.Sprintf("User with email %s was not found", reqUser.Email)
+			log.Println(errMsg)
+			http.Error(w, errMsg, http.StatusNotFound)
+		} else {
+			internalServerError(w, err)
+		}
 		return
 	}
 
