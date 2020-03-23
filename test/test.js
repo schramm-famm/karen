@@ -48,7 +48,7 @@ describe('POST /karen/v1/users', () => {
       });
 
     expect(res).to.have.status(201);
-    expect(res.body).to.have.property('id');
+    expect(res.body).to.have.keys('id', 'name', 'email');
     expect(res.body).to.have.property('name', 'Foo Bar');
     expect(res.body).to.have.property('email', 'foo@bar.baz');
     createdUsers.push(res.body.id);
