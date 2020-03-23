@@ -38,6 +38,37 @@ func (db *DB) CheckUser(user *User) (*User, error) {
 	return userFromDB, err
 }
 
+func (db *DB) UpdateUser(user *User) (*User, error) {
+	var b strings.Builder
+	fmt.Fprintf(&b, "UPDATE %s SET ", usersTable)
+	if user.AvatarURL != "" {
+		fmt.Fprintf(&b, "AvatarURL='%s'", user.AvatarURL)
+	}
+	if user.Name != "" {
+		if user.AvatarURL != "" {
+			fmt.Fprintf(&b, ", ")
+		}
+		fmt.Fprintf(&b, "Name='%s'", user.Name)
+	}
+	if user.Password != "" {
+		if user.AvatarURL != "" || user.Name != "" {
+			fmt.Fprintf(&b, ", ")
+		}
+		hashedPassword, err := hashPassword(user.Password)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(&b, "Password='%s'", hashedPassword)
+	}
+	fmt.Fprintf(&b, " where ID=?")
+
+	_, err := db.Exec(b.String(), user.ID)
+	if err != nil {
+		return nil, err
+	}
+	return user, err
+}
+
 //Creates a user instance in the db and returns the user's id and the error
 func (db *DB) CreateUser(user *User) (int64, error) {
 	tx, err := db.Begin()
@@ -84,7 +115,7 @@ func (db *DB) ReadUser(userID int64) (*User, error) {
 	user := &User{}
 	queryString := fmt.Sprintf("SELECT * FROM %s WHERE ID=?", usersTable)
 
-	err := db.QueryRow(queryString, userID).Scan(&(user.ID), &(user.Name), &(user.Email), &(user.Password), &(user.AvatarURL))
+	err := db.QueryRow(queryString, userID).Scan(&(user.ID), &(user.Email), &(user.Name), &(user.Password), &(user.AvatarURL))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, err
@@ -96,10 +127,6 @@ func (db *DB) ReadUser(userID int64) (*User, error) {
 }
 
 /*
-func (db *DB) UpdateUser(user User) ([]*User, error) {
-
-}
-
 func (db *DB) DeleteUser(user User) error {
 
 }

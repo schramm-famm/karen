@@ -18,6 +18,10 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
+const (
+	missingFieldMessage string = "Request body is missing field(s)"
+)
+
 type Env struct {
 	DB models.Datastore
 }
@@ -34,7 +38,7 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if reqUser.Email == "" || reqUser.Password == "" {
-		errMsg := "Request body is missing field(s)"
+		errMsg := missingFieldMessage
 		log.Println(errMsg)
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
@@ -69,7 +73,7 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if reqUser.Name == "" || reqUser.Email == "" || reqUser.Password == "" {
-		errMsg := "Request body is missing field(s)"
+		errMsg := missingFieldMessage
 		log.Println(errMsg)
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
@@ -90,23 +94,55 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	reqUser.ID = userID
 	reqUser.Password = ""
-	location := fmt.Sprintf("%s/%d", r.URL.Path, userID)
+	location := fmt.Sprintf("%s/self", r.URL.Path)
 	w.Header().Add("Location", location)
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(reqUser)
 }
 
+// PatchUserHandler updates specific columns of given user
+func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
+	userId, err := getUserID(r)
+	if err != nil {
+		errMsg := "Invalid user ID"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+	reqUser := &models.User{}
+	if err := parseJSON(w, r.Body, reqUser); err != nil {
+		return
+	}
+	reqUser.ID = userId
+	if reqUser.Name == "" && reqUser.Password == "" && reqUser.AvatarURL == "" {
+		w.Header().Add("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(reqUser)
+		return
+	}
+
+	retUser, err := env.DB.UpdateUser(reqUser)
+	if err != nil {
+		mySQLErr, ok := err.(*mysql.MySQLError)
+		if ok && mySQLErr.Number == 1065 {
+			errMsg := "User not found"
+			log.Println(errMsg)
+			http.Error(w, errMsg, http.StatusNotFound)
+		} else {
+			internalServerError(w, err)
+		}
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	retUser.ID = int64(0)
+	retUser.Password = ""
+	json.NewEncoder(w).Encode(retUser)
+}
+
 // GetUserHandler gets a user returning specified columns
 func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	var userID int64
-	var err error
-	if vars["user-id"] != "" {
-		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
-	} else {
-		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
-	}
+	userID, err := getUserID(r)
 	if err != nil {
 		errMsg := "Invalid user ID"
 		log.Println(errMsg + ": " + err.Error())
@@ -171,4 +207,16 @@ func parseJSON(w http.ResponseWriter, body io.ReadCloser, bodyObj interface{}) e
 	}
 
 	return nil
+}
+
+func getUserID(r *http.Request) (int64, error) {
+	vars := mux.Vars(r)
+	var userID int64
+	var err error
+	if vars["user-id"] != "" {
+		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
+	} else {
+		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
+	}
+	return userID, err
 }
