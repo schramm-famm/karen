@@ -102,6 +102,25 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // PatchUserHandler updates specific columns of given user
+func (env *Env) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	userId, err := getUserID(r)
+	if err != nil || userId < 0 {
+		errMsg := "Invalid user ID"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+	err = env.DB.DeleteUser(userId)
+	if err != nil {
+		errMsg := "Invalid user ID"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusNotFound)
+	}
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// PatchUserHandler updates specific columns of given user
 func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 	userId, err := getUserID(r)
 	if err != nil {
@@ -142,7 +161,14 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetUserHandler gets a user returning specified columns
 func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r)
+	vars := mux.Vars(r)
+	var userID int64
+	var err error
+	if vars["user-id"] != "" {
+		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
+	} else {
+		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
+	}
 	if err != nil {
 		errMsg := "Invalid user ID"
 		log.Println(errMsg + ": " + err.Error())
@@ -210,13 +236,6 @@ func parseJSON(w http.ResponseWriter, body io.ReadCloser, bodyObj interface{}) e
 }
 
 func getUserID(r *http.Request) (int64, error) {
-	vars := mux.Vars(r)
-	var userID int64
-	var err error
-	if vars["user-id"] != "" {
-		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
-	} else {
-		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
-	}
+	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
 	return userID, err
 }

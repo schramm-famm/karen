@@ -15,6 +15,7 @@ type Datastore interface {
 	CheckUser(user *User) (*User, error)
 	ReadUser(userID int64) (*User, error)
 	UpdateUser(user *User) (*User, error)
+	DeleteUser(int64) error
 }
 
 // DB represents an SQL database connection.
