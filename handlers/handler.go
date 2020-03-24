@@ -103,26 +103,26 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // PatchUserHandler updates specific columns of given user
 func (env *Env) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
-	userId, err := getUserID(r)
-	if err != nil || userId < 0 {
+	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
+	if err != nil || userID <= 0 {
 		errMsg := "Invalid user ID"
 		log.Println(errMsg + ": " + err.Error())
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
-	err = env.DB.DeleteUser(userId)
+	err = env.DB.DeleteUser(userID)
 	if err != nil {
-		errMsg := "Invalid user ID"
+		errMsg := "Failed to delete user"
 		log.Println(errMsg + ": " + err.Error())
 		http.Error(w, errMsg, http.StatusNotFound)
+		internalServerError(w, err)
 	}
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // PatchUserHandler updates specific columns of given user
 func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
-	userId, err := getUserID(r)
+	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
 	if err != nil {
 		errMsg := "Invalid user ID"
 		log.Println(errMsg + ": " + err.Error())
@@ -133,7 +133,7 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 	if err := parseJSON(w, r.Body, reqUser); err != nil {
 		return
 	}
-	reqUser.ID = userId
+	reqUser.ID = userID
 	if reqUser.Name == "" && reqUser.Password == "" && reqUser.AvatarURL == "" {
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(reqUser)
@@ -233,9 +233,4 @@ func parseJSON(w http.ResponseWriter, body io.ReadCloser, bodyObj interface{}) e
 	}
 
 	return nil
-}
-
-func getUserID(r *http.Request) (int64, error) {
-	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
-	return userID, err
 }
