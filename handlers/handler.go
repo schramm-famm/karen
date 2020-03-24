@@ -113,6 +113,7 @@ func (env *Env) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	err = env.DB.DeleteUser(userID)
 	if err != nil {
 		internalServerError(w, err)
+		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
