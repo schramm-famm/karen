@@ -112,9 +112,6 @@ func (env *Env) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err = env.DB.DeleteUser(userID)
 	if err != nil {
-		errMsg := "Failed to delete user"
-		log.Println(errMsg + ": " + err.Error())
-		http.Error(w, errMsg, http.StatusNotFound)
 		internalServerError(w, err)
 	}
 	w.WriteHeader(http.StatusNoContent)
