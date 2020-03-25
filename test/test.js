@@ -21,6 +21,7 @@ beforeEach(async () => {
 
   expect(res).to.have.status(201);
   preExistingUser.id = res.body.id;
+  preExistingUser.avatar_url = '';
   createdUsers.add(res.body.id);
 });
 
@@ -43,19 +44,34 @@ afterEach(async () => {
 
 describe('POST /karen/v1/users', () => {
   it('should create a user', async () => {
-    const res = await chai.request(karenEndpoint)
+    const newUser = {
+      name: 'Foo Bar',
+      email: 'foo@bar.baz',
+      password: 'foobarbaz',
+    };
+
+    let res = await chai.request(karenEndpoint)
       .post('/karen/v1/users')
-      .send({
-        name: 'Foo Bar',
-        email: 'foo@bar.baz',
-        password: 'foobarbaz',
-      });
+      .send(newUser);
+    newUser.avatar_url = '';
 
     expect(res).to.have.status(201);
-    expect(res.body).to.have.all.keys('id', 'name', 'email');
-    expect(res.body).to.have.property('name', 'Foo Bar');
-    expect(res.body).to.have.property('email', 'foo@bar.baz');
     createdUsers.add(res.body.id);
+    expect(res.body).to.have.all.keys('id', 'name', 'email', 'avatar_url');
+    expect(res.body).to.have.property('name', newUser.name);
+    expect(res.body).to.have.property('email', newUser.email);
+    expect(res.body).to.have.property('avatar_url', newUser.avatar_url);
+
+    // Check that the new user resource can be retrieved.
+    res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users/self')
+      .set('User-ID', res.body.id);
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.all.keys('name', 'email', 'avatar_url');
+    expect(res.body).to.have.property('name', newUser.name);
+    expect(res.body).to.have.property('email', newUser.email);
+    expect(res.body).to.have.property('avatar_url', newUser.avatar_url);
   });
 
   it('should fail when re-using an email', async () => {
@@ -97,9 +113,10 @@ describe('GET /karen/v1/users/self', () => {
       .set('User-ID', preExistingUser.id);
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.all.keys('id', 'name', 'email');
+    expect(res.body).to.have.all.keys('name', 'email', 'avatar_url');
     expect(res.body).to.have.property('name', preExistingUser.name);
     expect(res.body).to.have.property('email', preExistingUser.email);
+    expect(res.body).to.have.property('avatar_url', preExistingUser.avatar_url);
   });
 
   it('should retrieve the session user with specified fields', async () => {
@@ -139,42 +156,71 @@ describe('GET /karen/v1/users/{user_id}', () => {
       .set('User-ID', 123);
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.all.keys('id', 'name', 'email');
+    expect(res.body).to.have.all.keys('name', 'email', 'avatar_url');
     expect(res.body).to.have.property('name', preExistingUser.name);
     expect(res.body).to.have.property('email', preExistingUser.email);
+    expect(res.body).to.have.property('avatar_url', preExistingUser.avatar_url);
   });
 });
 
 describe('PATCH /karen/v1/users/self', () => {
   it('should update a user', async () => {
-    const res = await chai.request(karenEndpoint)
+    const updatedFields = {
+      name: 'New Name',
+      email: 'newemail@foo.bar',
+      password: 'newpassword',
+      avatar_url: 'example.com/newavatar.png',
+    };
+
+    let res = await chai.request(karenEndpoint)
       .patch('/karen/v1/users/self')
       .set('User-ID', preExistingUser.id)
-      .send({
-        name: 'New Name',
-        email: 'newemail@foo.bar',
-        password: 'newpassword',
-        avatar_url: 'example.com/newavatar.png',
-      });
+      .send(updatedFields);
 
     expect(res).to.have.status(200);
     expect(res.body).to.have.all.keys('name', 'email', 'avatar_url');
-    expect(res.body).to.have.property('name', 'New Name');
-    expect(res.body).to.have.property('email', 'newemail@foo.bar');
-    expect(res.body).to.have.property('avatar_url', 'example.com/newavatar.png');
+    expect(res.body).to.have.property('name', updatedFields.name);
+    expect(res.body).to.have.property('email', updatedFields.email);
+    expect(res.body).to.have.property('avatar_url', updatedFields.avatar_url);
+
+    // Check that the user resource gets retrieved with the updated properties.
+    res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users/self')
+      .set('User-ID', preExistingUser.id);
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.all.keys('name', 'email', 'avatar_url');
+    expect(res.body).to.have.property('name', updatedFields.name);
+    expect(res.body).to.have.property('email', updatedFields.email);
+    expect(res.body).to.have.property('avatar_url', updatedFields.avatar_url);
   });
 
   it('should update only the specified field(s)', async () => {
-    const res = await chai.request(karenEndpoint)
+    const updatedFields = {
+      name: 'New Name',
+    };
+
+    let res = await chai.request(karenEndpoint)
       .patch('/karen/v1/users/self')
       .set('User-ID', preExistingUser.id)
-      .send({
-        name: 'New Name',
-      });
+      .send(updatedFields);
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.all.keys('name');
-    expect(res.body).to.have.property('name', 'New Name');
+    expect(res.body).to.have.all.keys('name', 'email', 'avatar_url');
+    expect(res.body).to.have.property('name', updatedFields.name);
+    expect(res.body).to.have.property('email', preExistingUser.email);
+    expect(res.body).to.have.property('avatar_url', preExistingUser.avatar_url);
+
+    // Check that the user resource gets retrieved with the updated property.
+    res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users/self')
+      .set('User-ID', preExistingUser.id);
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.all.keys('name', 'email', 'avatar_url');
+    expect(res.body).to.have.property('name', updatedFields.name);
+    expect(res.body).to.have.property('email', preExistingUser.email);
+    expect(res.body).to.have.property('avatar_url', preExistingUser.avatar_url);
   });
 
   it('should fail when the user does not exist', async () => {
@@ -202,12 +248,19 @@ describe('PATCH /karen/v1/users/self', () => {
 
 describe('DELETE /karen/v1/users/self', () => {
   it('should delete the session user', async () => {
-    const res = await chai.request(karenEndpoint)
+    let res = await chai.request(karenEndpoint)
       .delete('/karen/v1/users/self')
       .set('User-ID', preExistingUser.id);
 
     expect(res).to.have.status(204);
     createdUsers.delete(preExistingUser.id);
+
+    // Check that the user resource is no longer available.
+    res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users/self')
+      .set('User-ID', preExistingUser.id);
+
+    expect(res).to.have.status(404);
   });
 
   it('should fail when the user does not exist', async () => {
@@ -229,9 +282,11 @@ describe('POST /karen/v1/users/auth', () => {
       });
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.all.keys('id', 'name', 'email');
+    expect(res.body).to.have.all.keys('id', 'name', 'email', 'avatar_url');
+    expect(res.body).to.have.property('id', preExistingUser.id);
     expect(res.body).to.have.property('name', preExistingUser.name);
     expect(res.body).to.have.property('email', preExistingUser.email);
+    expect(res.body).to.have.property('avatar_url', preExistingUser.avatar_url);
   });
 
   it('should catch an incorrect password', async () => {
