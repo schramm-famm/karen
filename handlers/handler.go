@@ -102,8 +102,25 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // PatchUserHandler updates specific columns of given user
+func (env *Env) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
+	if err != nil || userID <= 0 {
+		errMsg := "Invalid user ID"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+	err = env.DB.DeleteUser(userID)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// PatchUserHandler updates specific columns of given user
 func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
-	userId, err := getUserID(r)
+	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
 	if err != nil {
 		errMsg := "Invalid user ID"
 		log.Println(errMsg + ": " + err.Error())
@@ -114,7 +131,7 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 	if err := parseJSON(w, r.Body, reqUser); err != nil {
 		return
 	}
-	reqUser.ID = userId
+	reqUser.ID = userID
 	if reqUser.Name == "" && reqUser.Password == "" && reqUser.AvatarURL == "" {
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(reqUser)
@@ -142,7 +159,14 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetUserHandler gets a user returning specified columns
 func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r)
+	vars := mux.Vars(r)
+	var userID int64
+	var err error
+	if vars["user-id"] != "" {
+		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
+	} else {
+		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
+	}
 	if err != nil {
 		errMsg := "Invalid user ID"
 		log.Println(errMsg + ": " + err.Error())
@@ -207,16 +231,4 @@ func parseJSON(w http.ResponseWriter, body io.ReadCloser, bodyObj interface{}) e
 	}
 
 	return nil
-}
-
-func getUserID(r *http.Request) (int64, error) {
-	vars := mux.Vars(r)
-	var userID int64
-	var err error
-	if vars["user-id"] != "" {
-		userID, err = strconv.ParseInt(vars["user-id"], 10, 64)
-	} else {
-		userID, err = strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
-	}
-	return userID, err
 }
