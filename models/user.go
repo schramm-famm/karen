@@ -22,7 +22,7 @@ const (
 	usersTable string = "users"
 )
 
-//Authenticates the user's credentials and returns the user
+// CheckUser authenticates the user's credentials and returns the user.
 func (db *DB) CheckUser(user *User) (*User, error) {
 	userFromDB := &User{}
 	queryString := fmt.Sprintf("SELECT ID, Name, Password FROM %s WHERE EMAIL=?", usersTable)
@@ -38,16 +38,21 @@ func (db *DB) CheckUser(user *User) (*User, error) {
 	return userFromDB, err
 }
 
-func (db *DB) DeleteUser(userID int64) error {
+// DeleteUser removesa a row from the "users" table.
+func (db *DB) DeleteUser(userID int64) (int64, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "DELETE FROM %s", usersTable)
 	fmt.Fprintf(&b, " where ID=?")
 
-	_, err := db.Exec(b.String(), userID)
-	return err
+	res, err := db.Exec(b.String(), userID)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
-func (db *DB) UpdateUser(user *User) (*User, error) {
+// UpdateUser updates an existing row in the "users" table.
+func (db *DB) UpdateUser(user *User) (int64, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "UPDATE %s SET ", usersTable)
 	if user.AvatarURL != "" {
@@ -65,20 +70,21 @@ func (db *DB) UpdateUser(user *User) (*User, error) {
 		}
 		hashedPassword, err := hashPassword(user.Password)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 		fmt.Fprintf(&b, "Password='%s'", hashedPassword)
 	}
 	fmt.Fprintf(&b, " where ID=?")
 
-	_, err := db.Exec(b.String(), user.ID)
+	res, err := db.Exec(b.String(), user.ID)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	return user, err
+	return res.RowsAffected()
 }
 
-//Creates a user instance in the db and returns the user's id and the error
+// CreateUser creates a user instance in the db and returns the user's id and
+// the error, if there is one.
 func (db *DB) CreateUser(user *User) (int64, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -118,7 +124,7 @@ func (db *DB) CreateUser(user *User) (int64, error) {
 	return userID, err
 }
 
-//ReadUser returns one user from the database given userID
+// ReadUser returns one user from the database given userID
 func (db *DB) ReadUser(userID int64) (*User, error) {
 
 	user := &User{}
@@ -134,12 +140,6 @@ func (db *DB) ReadUser(userID int64) (*User, error) {
 	log.Printf(`Read 1 row from "%s"`, usersTable)
 	return user, nil
 }
-
-/*
-func (db *DB) DeleteUser(user User) error {
-
-}
-*/
 
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)

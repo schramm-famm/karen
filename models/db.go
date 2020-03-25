@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -14,8 +15,8 @@ type Datastore interface {
 	CreateUser(user *User) (int64, error)
 	CheckUser(user *User) (*User, error)
 	ReadUser(userID int64) (*User, error)
-	UpdateUser(user *User) (*User, error)
-	DeleteUser(int64) error
+	UpdateUser(user *User) (int64, error)
+	DeleteUser(int64) (int64, error)
 }
 
 // DB represents an SQL database connection.
@@ -33,6 +34,23 @@ func NewDB(dataSourceName string) (*DB, error) {
 		return nil, err
 	}
 	if err = setupDB(db); err != nil {
+		return nil, err
+	}
+	db.Close()
+
+	// Re-open, this time with a specified database
+	slashIndex := strings.Index(dataSourceName, "/")
+	if slashIndex < 0 {
+		return nil, fmt.Errorf("Invalid data source name")
+	}
+	db, err = sql.Open(
+		"mysql",
+		dataSourceName[:slashIndex+1]+"karen"+dataSourceName[slashIndex+1:],
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err = db.Ping(); err != nil {
 		return nil, err
 	}
 	return &DB{db}, nil

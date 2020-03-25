@@ -14,6 +14,7 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/ziutek/mymysql/godrv"
+
 	// MySQL database driver
 	"github.com/go-sql-driver/mysql"
 )
@@ -32,6 +33,7 @@ func internalServerError(w http.ResponseWriter, err error) {
 	http.Error(w, errMsg, http.StatusInternalServerError)
 }
 
+// PostAuthHandler verifies provided credentials against the database.
 func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 	reqUser := &models.User{}
 	if err := parseJSON(w, r.Body, reqUser); err != nil {
@@ -66,6 +68,7 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(reqUser)
 }
 
+// PostUserHandler creates a single new user.
 func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	reqUser := &models.User{}
 	if err := parseJSON(w, r.Body, reqUser); err != nil {
@@ -101,7 +104,7 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(reqUser)
 }
 
-// PatchUserHandler updates specific columns of given user
+// DeleteUserHandler removes a single user.
 func (env *Env) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
 	if err != nil || userID <= 0 {
@@ -110,15 +113,21 @@ func (env *Env) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
-	err = env.DB.DeleteUser(userID)
+	rowsAffected, err := env.DB.DeleteUser(userID)
 	if err != nil {
 		internalServerError(w, err)
+		return
+	}
+	if rowsAffected == 0 {
+		errMsg := "User not found"
+		log.Println(errMsg)
+		http.Error(w, errMsg, http.StatusNotFound)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// PatchUserHandler updates specific columns of given user
+// PatchUserHandler updates a single user.
 func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
 	if err != nil {
@@ -138,26 +147,25 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	retUser, err := env.DB.UpdateUser(reqUser)
+	rowsAffected, err := env.DB.UpdateUser(reqUser)
 	if err != nil {
-		mySQLErr, ok := err.(*mysql.MySQLError)
-		if ok && mySQLErr.Number == 1065 {
-			errMsg := "User not found"
-			log.Println(errMsg)
-			http.Error(w, errMsg, http.StatusNotFound)
-		} else {
-			internalServerError(w, err)
-		}
+		internalServerError(w, err)
+		return
+	}
+	if rowsAffected == 0 {
+		errMsg := "User not found"
+		log.Println(errMsg)
+		http.Error(w, errMsg, http.StatusNotFound)
 		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	retUser.ID = int64(0)
-	retUser.Password = ""
-	json.NewEncoder(w).Encode(retUser)
+	reqUser.ID = int64(0)
+	reqUser.Password = ""
+	json.NewEncoder(w).Encode(reqUser)
 }
 
-// GetUserHandler gets a user returning specified columns
+// GetUserHandler gets a single user, returning specified columns.
 func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	var userID int64
