@@ -39,6 +39,7 @@ func main() {
 	r.HandleFunc("/karen/v1/users/{user-id}", env.GetUserHandler).Methods("GET")
 	r.HandleFunc("/karen/v1/users", env.PostUserHandler).Methods("POST")
 	r.HandleFunc("/karen/v1/users/self", env.PatchUserHandler).Methods("PATCH")
+	r.HandleFunc("/karen/v1/users/self", env.DeleteUserHandler).Methods("DELETE")
 	r.Use(logging)
 
 	httpSrv := &http.Server{

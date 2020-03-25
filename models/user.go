@@ -38,6 +38,15 @@ func (db *DB) CheckUser(user *User) (*User, error) {
 	return userFromDB, err
 }
 
+func (db *DB) DeleteUser(userID int64) error {
+	var b strings.Builder
+	fmt.Fprintf(&b, "DELETE FROM %s", usersTable)
+	fmt.Fprintf(&b, " where ID=?")
+
+	_, err := db.Exec(b.String(), userID)
+	return err
+}
+
 func (db *DB) UpdateUser(user *User) (*User, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "UPDATE %s SET ", usersTable)
