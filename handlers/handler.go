@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"karen/models"
+	"karen/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -60,12 +61,10 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	reqUser.ID = user.ID
-	reqUser.Name = user.Name
-	reqUser.Password = ""
+	user.Password = ""
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(reqUser)
+	json.NewEncoder(w).Encode(user)
 }
 
 // PostUserHandler creates a single new user.
@@ -80,6 +79,10 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(errMsg)
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
+	}
+
+	if reqUser.AvatarURL == nil {
+		reqUser.AvatarURL = utils.StringPtr("")
 	}
 
 	userID, err := env.DB.CreateUser(reqUser)
@@ -141,13 +144,28 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reqUser.ID = userID
-	if reqUser.Name == "" && reqUser.Password == "" && reqUser.AvatarURL == "" {
-		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(reqUser)
+	if reqUser.Name == "" && reqUser.Email == "" && reqUser.Password == "" && reqUser.AvatarURL == nil {
+		errMsg := `Request body must have one of "email", "name", "password", or "avatar_url"`
+		log.Println(errMsg)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 
-	rowsAffected, err := env.DB.UpdateUser(reqUser)
+	dbUser, err := env.DB.ReadUser(userID)
+	if dbUser == nil {
+		errMsg := "User not found"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	newUser := dbUser.Merge(reqUser)
+
+	rowsAffected, err := env.DB.UpdateUser(newUser)
 	if err != nil {
 		internalServerError(w, err)
 		return
@@ -160,9 +178,9 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	reqUser.ID = int64(0)
-	reqUser.Password = ""
-	json.NewEncoder(w).Encode(reqUser)
+	newUser.ID = 0
+	newUser.Password = ""
+	json.NewEncoder(w).Encode(newUser)
 }
 
 // GetUserHandler gets a single user, returning specified columns.
@@ -199,12 +217,11 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	includes := r.Form["includes"]
 	if includes == nil {
 		responseUser = user
+		responseUser.ID = 0
 		responseUser.Password = ""
 	} else {
 		for _, column := range includes {
 			switch column {
-			case "id":
-				responseUser.ID = user.ID
 			case "name":
 				responseUser.Name = user.Name
 			case "email":

@@ -10,24 +10,62 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// User represents a user account.
 type User struct {
-	ID        int64  `json:"id,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Email     string `json:"email,omitempty"`
-	Password  string `json:"password,omitempty"`
-	AvatarURL string `json:"avatar_url,omitempty"`
+	ID        int64   `json:"id,omitempty"`
+	Name      string  `json:"name,omitempty"`
+	Email     string  `json:"email,omitempty"`
+	Password  string  `json:"password,omitempty"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
 }
 
 const (
 	usersTable string = "users"
 )
 
+// Merge creates a new User by copying the original User and replacing its
+// fields with the non-zero-value fields of a patch User.
+func (u *User) Merge(patch *User) *User {
+	newUser := &User{ID: u.ID}
+
+	if patch.Name != "" {
+		newUser.Name = patch.Name
+	} else {
+		newUser.Name = u.Name
+	}
+
+	if patch.Email != "" {
+		newUser.Email = patch.Email
+	} else {
+		newUser.Email = u.Email
+	}
+
+	if patch.Password != "" {
+		newUser.Password = patch.Password
+	} else {
+		newUser.Password = u.Password
+	}
+
+	if patch.AvatarURL != nil {
+		newUser.AvatarURL = patch.AvatarURL
+	} else {
+		newUser.AvatarURL = u.AvatarURL
+	}
+
+	return newUser
+}
+
 // CheckUser authenticates the user's credentials and returns the user.
 func (db *DB) CheckUser(user *User) (*User, error) {
 	userFromDB := &User{}
-	queryString := fmt.Sprintf("SELECT ID, Name, Password FROM %s WHERE EMAIL=?", usersTable)
-	err := db.QueryRow(queryString, user.Email).Scan(&(userFromDB.ID),
-		&(userFromDB.Name), &(userFromDB.Password))
+	queryString := fmt.Sprintf("SELECT ID, Name, Email, Password, AvatarUrl FROM %s WHERE EMAIL=?", usersTable)
+	err := db.QueryRow(queryString, user.Email).Scan(
+		&(userFromDB.ID),
+		&(userFromDB.Name),
+		&(userFromDB.Email),
+		&(userFromDB.Password),
+		&(userFromDB.AvatarURL),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -55,28 +93,9 @@ func (db *DB) DeleteUser(userID int64) (int64, error) {
 func (db *DB) UpdateUser(user *User) (int64, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "UPDATE %s SET ", usersTable)
-	if user.AvatarURL != "" {
-		fmt.Fprintf(&b, "AvatarURL='%s'", user.AvatarURL)
-	}
-	if user.Name != "" {
-		if user.AvatarURL != "" {
-			fmt.Fprintf(&b, ", ")
-		}
-		fmt.Fprintf(&b, "Name='%s'", user.Name)
-	}
-	if user.Password != "" {
-		if user.AvatarURL != "" || user.Name != "" {
-			fmt.Fprintf(&b, ", ")
-		}
-		hashedPassword, err := hashPassword(user.Password)
-		if err != nil {
-			return 0, err
-		}
-		fmt.Fprintf(&b, "Password='%s'", hashedPassword)
-	}
-	fmt.Fprintf(&b, " where ID=?")
+	fmt.Fprintf(&b, "Name=?, Email=?, Password=?, AvatarURL=? WHERE ID=?")
 
-	res, err := db.Exec(b.String(), user.ID)
+	res, err := db.Exec(b.String(), user.Name, user.Email, user.Password, *user.AvatarURL, user.ID)
 	if err != nil {
 		return 0, err
 	}
@@ -98,7 +117,7 @@ func (db *DB) CreateUser(user *User) (int64, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "INSERT INTO %s(Name, Email, Password, AvatarURL) ", usersTable)
 	fmt.Fprintf(&b, "VALUES(?, ?, ?, ?)")
-	res, err := tx.Exec(b.String(), user.Name, user.Email, user.Password, user.AvatarURL)
+	res, err := tx.Exec(b.String(), user.Name, user.Email, user.Password, *user.AvatarURL)
 	if err != nil {
 		tx.Rollback()
 		return -1, err
