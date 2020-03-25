@@ -38,7 +38,7 @@ func (db *DB) CheckUser(user *User) (*User, error) {
 	return userFromDB, err
 }
 
-// DeleteUser removesa a row from the "users" table.
+// DeleteUser removes a row from the "users" table.
 func (db *DB) DeleteUser(userID int64) (int64, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "DELETE FROM %s", usersTable)

@@ -52,7 +52,7 @@ describe('POST /karen/v1/users', () => {
       });
 
     expect(res).to.have.status(201);
-    expect(res.body).to.have.keys('id', 'name', 'email');
+    expect(res.body).to.have.all.keys('id', 'name', 'email');
     expect(res.body).to.have.property('name', 'Foo Bar');
     expect(res.body).to.have.property('email', 'foo@bar.baz');
     createdUsers.add(res.body.id);
@@ -97,7 +97,7 @@ describe('GET /karen/v1/users/self', () => {
       .set('User-ID', preExistingUser.id);
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.keys('id', 'name', 'email');
+    expect(res.body).to.have.all.keys('id', 'name', 'email');
     expect(res.body).to.have.property('name', preExistingUser.name);
     expect(res.body).to.have.property('email', preExistingUser.email);
   });
@@ -109,7 +109,7 @@ describe('GET /karen/v1/users/self', () => {
       .set('User-ID', preExistingUser.id);
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.keys('name', 'email');
+    expect(res.body).to.have.all.keys('name', 'email');
     expect(res.body).to.have.property('name', preExistingUser.name);
     expect(res.body).to.have.property('email', preExistingUser.email);
   });
@@ -139,7 +139,7 @@ describe('GET /karen/v1/users/{user_id}', () => {
       .set('User-ID', 123);
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.keys('id', 'name', 'email');
+    expect(res.body).to.have.all.keys('id', 'name', 'email');
     expect(res.body).to.have.property('name', preExistingUser.name);
     expect(res.body).to.have.property('email', preExistingUser.email);
   });
@@ -153,12 +153,12 @@ describe('PATCH /karen/v1/users/self', () => {
       .send({
         name: 'New Name',
         email: 'newemail@foo.bar',
-        password: 'newpassowrd',
+        password: 'newpassword',
         avatar_url: 'example.com/newavatar.png',
       });
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.keys('name', 'email', 'avatar_url');
+    expect(res.body).to.have.all.keys('name', 'email', 'avatar_url');
     expect(res.body).to.have.property('name', 'New Name');
     expect(res.body).to.have.property('email', 'newemail@foo.bar');
     expect(res.body).to.have.property('avatar_url', 'example.com/newavatar.png');
@@ -173,7 +173,7 @@ describe('PATCH /karen/v1/users/self', () => {
       });
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.keys('name');
+    expect(res.body).to.have.all.keys('name');
     expect(res.body).to.have.property('name', 'New Name');
   });
 
@@ -184,7 +184,7 @@ describe('PATCH /karen/v1/users/self', () => {
       .send({
         name: 'New Name',
         email: 'newemail@foo.bar',
-        password: 'newpassowrd',
+        password: 'newpassword',
       });
 
     expect(res).to.have.status(404);
@@ -229,7 +229,7 @@ describe('POST /karen/v1/users/auth', () => {
       });
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.keys('id', 'name', 'email');
+    expect(res.body).to.have.all.keys('id', 'name', 'email');
     expect(res.body).to.have.property('name', preExistingUser.name);
     expect(res.body).to.have.property('email', preExistingUser.email);
   });
