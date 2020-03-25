@@ -5,37 +5,38 @@ chai.use(chaiHttp);
 const { expect } = chai;
 
 const karenEndpoint = process.env.HOST;
-const createdUsers = [];
+const createdUsers = new Set();
 
-/*
+const preExistingUser = {
+  name: 'Pre-existing User',
+  email: 'preexistinguser@foo.bar',
+  password: 'foobar',
+};
+
 beforeEach(async () => {
   const res = await chai.request(karenEndpoint)
     .post('/karen/v1/users')
-    .send({
-      name: 'Pre-existing User',
-      email: 'preexistinguser@foo.bar',
-      password: 'foobar',
-    });
+    .send(preExistingUser);
 
   expect(res).to.have.status(201);
-  createdUsers.push(res.body.id);
+  preExistingUser.id = res.body.id;
+  createdUsers.add(res.body.id);
 });
 
 afterEach(async () => {
   const requests = [];
-  while (createdUsers.length > 0) {
-    const userID = createdUsers.pop();
+  Array.from(createdUsers).forEach((userID) => {
     requests.push(chai.request(karenEndpoint)
-      .delete('/karen/v1/users')
+      .delete('/karen/v1/users/self')
       .set('User-ID', userID));
-  }
+    createdUsers.delete(userID);
+  });
 
   const responses = await Promise.all(requests);
   responses.forEach((res) => {
     expect(res).to.have.status(204);
   });
 });
-*/
 
 describe('POST /karen/v1/users', () => {
   it('should create a user', async () => {
@@ -51,18 +52,155 @@ describe('POST /karen/v1/users', () => {
     expect(res.body).to.have.keys('id', 'name', 'email');
     expect(res.body).to.have.property('name', 'Foo Bar');
     expect(res.body).to.have.property('email', 'foo@bar.baz');
-    createdUsers.push(res.body.id);
+    createdUsers.add(res.body.id);
   });
 
-  it.skip('should fail when re-using an email', async () => {
+  it('should fail when re-using an email', async () => {
     const res = await chai.request(karenEndpoint)
       .post('/karen/v1/users')
       .send({
         name: 'new',
-        email: 'preexistinguser@foo.bar',
+        email: preExistingUser.email,
         password: 'password',
       });
 
     expect(res).to.have.status(409);
+  });
+
+  it('should fail when sending a malformed request body', async () => {
+    const res = await chai.request(karenEndpoint)
+      .post('/karen/v1/users')
+      .send('this is bad');
+
+    expect(res).to.have.status(400);
+  });
+});
+
+describe('GET /karen/v1/users/self', () => {
+  it('should retrieve the session user', async () => {
+    const res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users/self')
+      .set('User-ID', preExistingUser.id);
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.keys('id', 'name', 'email');
+    expect(res.body).to.have.property('name', preExistingUser.name);
+    expect(res.body).to.have.property('email', preExistingUser.email);
+  });
+
+  it('should retrieve the session user with specified fields', async () => {
+    const res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users/self')
+      .query({ includes: ['name', 'email'] })
+      .set('User-ID', preExistingUser.id);
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.keys('name', 'email');
+    expect(res.body).to.have.property('name', preExistingUser.name);
+    expect(res.body).to.have.property('email', preExistingUser.email);
+  });
+
+  it('should fail when the user does not exist', async () => {
+    const res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users/self')
+      .set('User-ID', 999999999);
+
+    expect(res).to.have.status(404);
+  });
+
+  it('should fail when sending a bad query', async () => {
+    const res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users/self')
+      .query({ includes: ['name', 'email', 'foo'] })
+      .set('User-ID', preExistingUser.id);
+
+    expect(res).to.have.status(400);
+  });
+});
+
+describe('GET /karen/v1/users/{user_id}', () => {
+  it('should retrieve the specified user', async () => {
+    const res = await chai.request(karenEndpoint)
+      .get(`/karen/v1/users/${preExistingUser.id}`)
+      .set('User-ID', 123);
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.keys('id', 'name', 'email');
+    expect(res.body).to.have.property('name', preExistingUser.name);
+    expect(res.body).to.have.property('email', preExistingUser.email);
+  });
+});
+
+describe('PATCH /karen/v1/users/self', () => {
+  it('should update a user', async () => {
+    const res = await chai.request(karenEndpoint)
+      .patch('/karen/v1/users/self')
+      .set('User-ID', preExistingUser.id)
+      .send({
+        name: 'New Name',
+        email: 'newemail@foo.bar',
+        password: 'newpassowrd',
+        avatar_url: 'example.com/newavatar.png',
+      });
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.keys('name', 'email', 'avatar_url');
+    expect(res.body).to.have.property('name', 'New Name');
+    expect(res.body).to.have.property('email', 'newemail@foo.bar');
+    expect(res.body).to.have.property('avatar_url', 'example.com/newavatar.png');
+  });
+
+  it('should update only the specified field(s)', async () => {
+    const res = await chai.request(karenEndpoint)
+      .patch('/karen/v1/users/self')
+      .set('User-ID', preExistingUser.id)
+      .send({
+        name: 'New Name',
+      });
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.keys('name');
+    expect(res.body).to.have.property('name', 'New Name');
+  });
+
+  it('should fail when the user does not exist', async () => {
+    const res = await chai.request(karenEndpoint)
+      .patch('/karen/v1/users/self')
+      .set('User-ID', 999999999)
+      .send({
+        name: 'New Name',
+        email: 'newemail@foo.bar',
+        password: 'newpassowrd',
+      });
+
+    expect(res).to.have.status(404);
+  });
+
+  it('should fail when sending a malformed request body', async () => {
+    const res = await chai.request(karenEndpoint)
+      .patch('/karen/v1/users/self')
+      .set('User-ID', preExistingUser.id)
+      .send('this is bad');
+
+    expect(res).to.have.status(400);
+  });
+});
+
+describe('DELETE /karen/v1/users/self', () => {
+  it('should delete the session user', async () => {
+    const res = await chai.request(karenEndpoint)
+      .delete('/karen/v1/users/self')
+      .set('User-ID', preExistingUser.id);
+
+    expect(res).to.have.status(204);
+    createdUsers.delete(preExistingUser.id);
+  });
+
+  it('should fail when the user does not exist', async () => {
+    const res = await chai.request(karenEndpoint)
+      .delete('/karen/v1/users/self')
+      .set('User-ID', 999999999);
+
+    expect(res).to.have.status(404);
   });
 });
