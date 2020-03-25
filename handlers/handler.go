@@ -3,6 +3,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -47,8 +48,7 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := env.DB.CheckUser(reqUser)
 	if err != nil {
-		mySQLErr, ok := err.(*mysql.MySQLError)
-		if ok && mySQLErr.Number == 1065 {
+		if err == sql.ErrNoRows {
 			errMsg := fmt.Sprintf("User with email %s was not found", reqUser.Email)
 			log.Println(errMsg)
 			http.Error(w, errMsg, http.StatusNotFound)

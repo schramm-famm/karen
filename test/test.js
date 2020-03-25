@@ -13,6 +13,7 @@ const preExistingUser = {
   password: 'foobar',
 };
 
+// Create a pre-existing user that each test can use as it needs.
 beforeEach(async () => {
   const res = await chai.request(karenEndpoint)
     .post('/karen/v1/users')
@@ -23,6 +24,8 @@ beforeEach(async () => {
   createdUsers.add(res.body.id);
 });
 
+// Delete any leftover created users to allow for a fresh starting point for the
+// next test.
 afterEach(async () => {
   const requests = [];
   Array.from(createdUsers).forEach((userID) => {
@@ -65,6 +68,17 @@ describe('POST /karen/v1/users', () => {
       });
 
     expect(res).to.have.status(409);
+  });
+
+  it('should fail when a mandatory field is missing', async () => {
+    const res = await chai.request(karenEndpoint)
+      .post('/karen/v1/users/auth')
+      .send({
+        name: 'Foo Bar',
+        email: 'foo@bar.baz',
+      });
+
+    expect(res).to.have.status(400);
   });
 
   it('should fail when sending a malformed request body', async () => {
@@ -202,5 +216,61 @@ describe('DELETE /karen/v1/users/self', () => {
       .set('User-ID', 999999999);
 
     expect(res).to.have.status(404);
+  });
+});
+
+describe('POST /karen/v1/users/auth', () => {
+  it('should authenticate correct credentials', async () => {
+    const res = await chai.request(karenEndpoint)
+      .post('/karen/v1/users/auth')
+      .send({
+        email: preExistingUser.email,
+        password: preExistingUser.password,
+      });
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.keys('id', 'name', 'email');
+    expect(res.body).to.have.property('name', preExistingUser.name);
+    expect(res.body).to.have.property('email', preExistingUser.email);
+  });
+
+  it('should catch an incorrect password', async () => {
+    const res = await chai.request(karenEndpoint)
+      .post('/karen/v1/users/auth')
+      .send({
+        email: preExistingUser.email,
+        password: 'wrongpass',
+      });
+
+    expect(res).to.have.status(401);
+  });
+
+  it('should fail when the user does not exist', async () => {
+    const res = await chai.request(karenEndpoint)
+      .post('/karen/v1/users/auth')
+      .send({
+        email: 'thisdoesnotexist@sympatico.com',
+        password: 'doesn\'t matter',
+      });
+
+    expect(res).to.have.status(404);
+  });
+
+  it('should fail when a mandatory field is missing', async () => {
+    const res = await chai.request(karenEndpoint)
+      .post('/karen/v1/users/auth')
+      .send({
+        email: preExistingUser.email,
+      });
+
+    expect(res).to.have.status(400);
+  });
+
+  it('should fail when sending a malformed request body', async () => {
+    const res = await chai.request(karenEndpoint)
+      .post('/karen/v1/users/auth')
+      .send('this is bad');
+
+    expect(res).to.have.status(400);
   });
 });
