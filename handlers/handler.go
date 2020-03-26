@@ -167,7 +167,14 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	rowsAffected, err := env.DB.UpdateUser(newUser)
 	if err != nil {
-		internalServerError(w, err)
+		mySQLErr, ok := err.(*mysql.MySQLError)
+		if ok && mySQLErr.Number == 1062 {
+			errMsg := fmt.Sprintf("Email already in use")
+			log.Println(errMsg)
+			http.Error(w, errMsg, http.StatusConflict)
+		} else {
+			internalServerError(w, err)
+		}
 		return
 	}
 	if rowsAffected == 0 {
