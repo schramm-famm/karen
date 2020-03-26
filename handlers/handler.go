@@ -3,17 +3,20 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"karen/models"
+	"karen/utils"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
 	_ "github.com/ziutek/mymysql/godrv"
+
 	// MySQL database driver
 	"github.com/go-sql-driver/mysql"
 )
@@ -32,6 +35,7 @@ func internalServerError(w http.ResponseWriter, err error) {
 	http.Error(w, errMsg, http.StatusInternalServerError)
 }
 
+// PostAuthHandler verifies provided credentials against the database.
 func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 	reqUser := &models.User{}
 	if err := parseJSON(w, r.Body, reqUser); err != nil {
@@ -45,8 +49,7 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := env.DB.CheckUser(reqUser)
 	if err != nil {
-		mySQLErr, ok := err.(*mysql.MySQLError)
-		if ok && mySQLErr.Number == 1065 {
+		if err == sql.ErrNoRows {
 			errMsg := fmt.Sprintf("User with email %s was not found", reqUser.Email)
 			log.Println(errMsg)
 			http.Error(w, errMsg, http.StatusNotFound)
@@ -58,14 +61,13 @@ func (env *Env) PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	reqUser.ID = user.ID
-	reqUser.Name = user.Name
-	reqUser.Password = ""
+	user.Password = ""
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(reqUser)
+	json.NewEncoder(w).Encode(user)
 }
 
+// PostUserHandler creates a single new user.
 func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	reqUser := &models.User{}
 	if err := parseJSON(w, r.Body, reqUser); err != nil {
@@ -77,6 +79,10 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(errMsg)
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
+	}
+
+	if reqUser.AvatarURL == nil {
+		reqUser.AvatarURL = utils.StringPtr("")
 	}
 
 	userID, err := env.DB.CreateUser(reqUser)
@@ -101,7 +107,7 @@ func (env *Env) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(reqUser)
 }
 
-// PatchUserHandler updates specific columns of given user
+// DeleteUserHandler removes a single user.
 func (env *Env) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
 	if err != nil || userID <= 0 {
@@ -110,15 +116,21 @@ func (env *Env) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
-	err = env.DB.DeleteUser(userID)
+	rowsAffected, err := env.DB.DeleteUser(userID)
 	if err != nil {
 		internalServerError(w, err)
+		return
+	}
+	if rowsAffected == 0 {
+		errMsg := "User not found"
+		log.Println(errMsg)
+		http.Error(w, errMsg, http.StatusNotFound)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// PatchUserHandler updates specific columns of given user
+// PatchUserHandler updates a single user.
 func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.ParseInt(r.Header.Get("User-ID"), 10, 64)
 	if err != nil {
@@ -132,32 +144,46 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reqUser.ID = userID
-	if reqUser.Name == "" && reqUser.Password == "" && reqUser.AvatarURL == "" {
-		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(reqUser)
+	if reqUser.Name == "" && reqUser.Email == "" && reqUser.Password == "" && reqUser.AvatarURL == nil {
+		errMsg := `Request body must have one of "email", "name", "password", or "avatar_url"`
+		log.Println(errMsg)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 
-	retUser, err := env.DB.UpdateUser(reqUser)
+	dbUser, err := env.DB.ReadUser(userID)
+	if dbUser == nil {
+		errMsg := "User not found"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusNotFound)
+		return
+	}
 	if err != nil {
-		mySQLErr, ok := err.(*mysql.MySQLError)
-		if ok && mySQLErr.Number == 1065 {
-			errMsg := "User not found"
-			log.Println(errMsg)
-			http.Error(w, errMsg, http.StatusNotFound)
-		} else {
-			internalServerError(w, err)
-		}
+		internalServerError(w, err)
+		return
+	}
+
+	newUser := dbUser.Merge(reqUser)
+
+	rowsAffected, err := env.DB.UpdateUser(newUser)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+	if rowsAffected == 0 {
+		errMsg := "User not found"
+		log.Println(errMsg)
+		http.Error(w, errMsg, http.StatusNotFound)
 		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	retUser.ID = int64(0)
-	retUser.Password = ""
-	json.NewEncoder(w).Encode(retUser)
+	newUser.ID = 0
+	newUser.Password = ""
+	json.NewEncoder(w).Encode(newUser)
 }
 
-// GetUserHandler gets a user returning specified columns
+// GetUserHandler gets a single user, returning specified columns.
 func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	var userID int64
@@ -191,12 +217,11 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	includes := r.Form["includes"]
 	if includes == nil {
 		responseUser = user
+		responseUser.ID = 0
 		responseUser.Password = ""
 	} else {
 		for _, column := range includes {
 			switch column {
-			case "id":
-				responseUser.ID = user.ID
 			case "name":
 				responseUser.Name = user.Name
 			case "email":

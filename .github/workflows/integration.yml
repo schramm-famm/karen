@@ -56,7 +56,11 @@ jobs:
         run: |
           cd $TF_DIR
           export HOST=$(terraform output host)
-          echo $HOST
+          echo HOST=$HOST
+          cd -
+          npm i
+          node wait.js
+          npm test
 
       - name: Terraform Destroy
         if: always()
