@@ -25,7 +25,7 @@ function ping(endpoint, numRetries, timeout, callback) {
 }
 
 console.log('Waiting for karen to start up...');
-ping(`http://${karenEndpoint}`, 20, 1000, (err) => {
+ping(`http://${karenEndpoint}`, 30, 2000, (err) => {
   if (err) {
     console.log(err.message);
     process.exit(1);
