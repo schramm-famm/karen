@@ -58,13 +58,12 @@ func (u *User) Merge(patch *User) *User {
 // CheckUser authenticates the user's credentials and returns the user.
 func (db *DB) CheckUser(user *User) (*User, error) {
 	userFromDB := &User{}
-	queryString := fmt.Sprintf("SELECT ID, Name, Email, Password, AvatarUrl FROM %s WHERE EMAIL=?", usersTable)
+	queryString := fmt.Sprintf("SELECT ID, Name, Email, Password FROM %s WHERE EMAIL=?", usersTable)
 	err := db.QueryRow(queryString, user.Email).Scan(
 		&(userFromDB.ID),
 		&(userFromDB.Name),
 		&(userFromDB.Email),
 		&(userFromDB.Password),
-		&(userFromDB.AvatarURL),
 	)
 	if err != nil {
 		return nil, err

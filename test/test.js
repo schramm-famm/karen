@@ -282,11 +282,10 @@ describe('POST /karen/v1/users/auth', () => {
       });
 
     expect(res).to.have.status(200);
-    expect(res.body).to.have.all.keys('id', 'name', 'email', 'avatar_url');
+    expect(res.body).to.have.all.keys('id', 'name', 'email');
     expect(res.body).to.have.property('id', preExistingUser.id);
     expect(res.body).to.have.property('name', preExistingUser.name);
     expect(res.body).to.have.property('email', preExistingUser.email);
-    expect(res.body).to.have.property('avatar_url', preExistingUser.avatar_url);
   });
 
   it('should catch an incorrect password', async () => {
