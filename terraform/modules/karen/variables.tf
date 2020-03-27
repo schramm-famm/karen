@@ -24,6 +24,11 @@ variable "subnets" {
   description = "VPC subnets for the karen service load balancer"
 }
 
+variable "internal" {
+  type        = bool
+  description = "Toggle whether the load balancer will be internal"
+}
+
 variable "db_location" {
   type        = string
   description = "Location (host) of the MariaDB server"
