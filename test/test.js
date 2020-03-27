@@ -244,6 +244,50 @@ describe('PATCH /karen/v1/users/self', () => {
 
     expect(res).to.have.status(400);
   });
+
+  it('should fail when using an email that is already taken', async () => {
+    // Create a user to be updated.
+    const testUser = {
+      name: 'Test Name',
+      email: 'testemail@foo.bar',
+      password: 'testpassword',
+    };
+
+    let res = await chai.request(karenEndpoint)
+      .post('/karen/v1/users')
+      .send(testUser);
+
+    expect(res).to.have.status(201);
+    createdUsers.add(res.body.id);
+    testUser.id = res.body.id;
+    testUser.avatar_url = '';
+
+    // Update the test user
+    const updatedFields = {
+      name: 'New Name',
+      email: preExistingUser.email,
+      password: 'newpassword',
+      avatar_url: 'example.com/newavatar.png',
+    };
+
+    res = await chai.request(karenEndpoint)
+      .patch('/karen/v1/users/self')
+      .set('User-ID', testUser.id)
+      .send(updatedFields);
+
+    expect(res).to.have.status(409);
+
+    // Check that the user's fields haven't changed.
+    res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users/self')
+      .set('User-ID', testUser.id);
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.all.keys('name', 'email', 'avatar_url');
+    expect(res.body).to.have.property('name', testUser.name);
+    expect(res.body).to.have.property('email', testUser.email);
+    expect(res.body).to.have.property('avatar_url', testUser.avatar_url);
+  });
 });
 
 describe('DELETE /karen/v1/users/self', () => {
