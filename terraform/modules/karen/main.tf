@@ -55,6 +55,7 @@ resource "aws_elb" "karen" {
   name            = "${var.name}-karen"
   subnets         = var.subnets
   security_groups = var.security_groups
+  internal        = var.internal
 
   listener {
     instance_port     = 80

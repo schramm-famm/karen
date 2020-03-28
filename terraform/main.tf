@@ -44,6 +44,7 @@ module "karen" {
   cluster_id      = module.ecs_cluster.cluster_id
   security_groups = [aws_security_group.karen.id]
   subnets         = module.ecs_base.vpc_public_subnets
+  internal        = false
   db_location     = module.rds_instance.db_endpoint
   db_username     = var.rds_username
   db_password     = var.rds_password
