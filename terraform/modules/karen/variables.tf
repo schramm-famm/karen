@@ -9,6 +9,12 @@ variable "container_tag" {
   default     = "latest"
 }
 
+variable "port" {
+  type        = number
+  description = "The port that karen's container port will map to on the host"
+  default     = 80
+}
+
 variable "cluster_id" {
   type        = string
   description = "ID of the ECS cluster that the karen service will run in"

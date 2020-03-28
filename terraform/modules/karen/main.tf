@@ -42,7 +42,7 @@ resource "aws_ecs_task_definition" "karen" {
     "portMappings": [
       {
         "containerPort": 80,
-        "hostPort": 80,
+        "hostPort": ${var.port},
         "protocol": "tcp"
       }
     ]
@@ -58,7 +58,7 @@ resource "aws_elb" "karen" {
   internal        = var.internal
 
   listener {
-    instance_port     = 80
+    instance_port     = var.port
     instance_protocol = "http"
     lb_port           = 80
     lb_protocol       = "http"
