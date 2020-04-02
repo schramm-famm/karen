@@ -47,7 +47,7 @@ container_tag = "<KAREN_CONTAINER_TAG_IN_ECR>" // optional
 ### Unit Testing
 To run the Go unit tests, execute `make test`.
 
-## Integration Testing
+### Integration Testing
 1. Deploy `karen` either locally or in AWS and get its endpoint.
 2. Run `npm i` to install the Node.js test dependencies.
 3. Run `export HOST=<YOUR_KAREN_ENDPOINT>` to tell the tests what endpoint to
