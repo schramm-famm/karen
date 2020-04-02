@@ -16,8 +16,8 @@ store the user data, including salted & hashed passwords using
 
 ## Running Karen
 1. Install the development dependencies.
-2. `karen` can be run locally or in docker:  
-   a. To run locally, run `make run [ENV_VAR=<VALUE>...]`  
+2. `karen` can be run normally or in docker:  
+   a. To run normally, run `make run [ENV_VAR=<VALUE>...]`  
    b. To run in docker, run `make docker-run [ENV_VAR=<VALUE>...]`
 
 ## Terraform
