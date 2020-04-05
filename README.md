@@ -109,7 +109,7 @@ Authenticates user credentials.
 
 Notable error codes: `401 Unauthorized`, `404 Not Found`
 
-### `GET /karen/v1/users?includes=id,name,email,avatar_url`
+### `GET /karen/v1/users/self?includes=id,name,email,avatar_url`
 Retrieves the session user (based on the "User-ID" header).
 #### Response format
 `200 OK`
