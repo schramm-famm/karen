@@ -37,6 +37,7 @@ func main() {
 	r.HandleFunc("/karen/v1/users/auth", env.PostAuthHandler).Methods("POST")
 	r.HandleFunc("/karen/v1/users/self", env.GetUserHandler).Methods("GET")
 	r.HandleFunc("/karen/v1/users/{user-id}", env.GetUserHandler).Methods("GET")
+	r.HandleFunc("/karen/v1/users", env.QueryUsersHandler).Methods("GET")
 	r.HandleFunc("/karen/v1/users", env.PostUserHandler).Methods("POST")
 	r.HandleFunc("/karen/v1/users/self", env.PatchUserHandler).Methods("PATCH")
 	r.HandleFunc("/karen/v1/users/self", env.DeleteUserHandler).Methods("DELETE")

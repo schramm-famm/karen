@@ -15,6 +15,7 @@ type Datastore interface {
 	CreateUser(user *User) (int64, error)
 	CheckUser(user *User) (*User, error)
 	ReadUser(userID int64) (*User, error)
+	GetUserByEmail(email string) (*User, error)
 	UpdateUser(user *User) (int64, error)
 	DeleteUser(int64) (int64, error)
 }
