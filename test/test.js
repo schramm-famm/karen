@@ -163,6 +163,39 @@ describe('GET /karen/v1/users/{user_id}', () => {
   });
 });
 
+describe('GET /karen/v1/users', () => {
+  it('should retrieve the user specified by email', async () => {
+    const res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users')
+      .query({ email: preExistingUser.email })
+      .set('User-ID', 123);
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.all.keys('id', 'name', 'email', 'avatar_url');
+    expect(res.body).to.have.property('id', preExistingUser.id);
+    expect(res.body).to.have.property('name', preExistingUser.name);
+    expect(res.body).to.have.property('email', preExistingUser.email);
+    expect(res.body).to.have.property('avatar_url', preExistingUser.avatar_url);
+  });
+
+  it('should fail when no user with the specified email exists', async () => {
+    const res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users')
+      .query({ email: 'nobodyusingthis@hotmail.com' })
+      .set('User-ID', 123);
+
+    expect(res).to.have.status(404);
+  });
+
+  it('should fail when missing the "email" query parameter', async () => {
+    const res = await chai.request(karenEndpoint)
+      .get('/karen/v1/users')
+      .set('User-ID', 123);
+
+    expect(res).to.have.status(400);
+  });
+});
+
 describe('PATCH /karen/v1/users/self', () => {
   it('should update a user', async () => {
     const updatedFields = {

@@ -109,13 +109,12 @@ Authenticates user credentials.
 
 Notable error codes: `401 Unauthorized`, `404 Not Found`
 
-### `GET /karen/v1/users`
+### `GET /karen/v1/users?includes=id,name,email,avatar_url`
 Retrieves the session user (based on the "User-ID" header).
 #### Response format
 `200 OK`
 ```
 {
-    "id": 1
     "name": "John Smith",
     "email": "johnsmith@example.com",
     "avatar_url": ""
@@ -124,13 +123,27 @@ Retrieves the session user (based on the "User-ID" header).
 
 Notable error codes: `404 Not Found`
 
-### `GET /karen/v1/users/{user-id}`
+### `GET /karen/v1/users/{user-id}?includes=id,name,email,avatar_url`
 Retrieves a specified user (based on the URL path variable).
 #### Response format
 `200 OK`
 ```
 {
-    "id": 2
+    "name": "Jane Doe",
+    "email": "janedoe@example.com",
+    "avatar_url": "example.com/profile.png"
+}
+```
+
+Notable error codes: `404 Not Found`
+
+### `GET /karen/v1/users?email=<EMAIL>`
+Retrieves a specified user (based on the `email` query parameter).
+#### Response format
+`200 OK`
+```
+{
+    "id": 2,
     "name": "Jane Doe",
     "email": "janedoe@example.com",
     "avatar_url": "example.com/profile.png"

@@ -15,6 +15,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	_ "github.com/ziutek/mymysql/godrv"
 
 	// MySQL database driver
@@ -24,6 +25,11 @@ import (
 const (
 	missingFieldMessage string = "Request body is missing field(s)"
 )
+
+// QueryFilter represents a user query filter.
+type QueryFilter struct {
+	Email string `schema:"email"`
+}
 
 type Env struct {
 	DB models.Datastore
@@ -152,14 +158,14 @@ func (env *Env) PatchUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dbUser, err := env.DB.ReadUser(userID)
-	if dbUser == nil {
-		errMsg := "User not found"
-		log.Println(errMsg + ": " + err.Error())
-		http.Error(w, errMsg, http.StatusNotFound)
-		return
-	}
 	if err != nil {
 		internalServerError(w, err)
+		return
+	}
+	if dbUser == nil {
+		errMsg := "User not found"
+		log.Println(errMsg)
+		http.Error(w, errMsg, http.StatusNotFound)
 		return
 	}
 
@@ -208,19 +214,25 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := env.DB.ReadUser(userID)
-	if user == nil {
-		errMsg := "User not found"
-		log.Println(errMsg + ": " + err.Error())
-		http.Error(w, errMsg, http.StatusNotFound)
-		return
-	}
 	if err != nil {
 		internalServerError(w, err)
 		return
 	}
+	if user == nil {
+		errMsg := "User not found"
+		log.Println(errMsg)
+		http.Error(w, errMsg, http.StatusNotFound)
+		return
+	}
 
 	responseUser := &models.User{}
-	r.ParseForm()
+	err = r.ParseForm()
+	if err != nil {
+		errMsg := "Malformed request"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
 	includes := r.Form["includes"]
 	if includes == nil {
 		responseUser = user
@@ -244,6 +256,48 @@ func (env *Env) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responseUser)
+}
+
+// QueryUsersHandler tries to find a single user by their email.
+func (env *Env) QueryUsersHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		errMsg := "Malformed request"
+		log.Println(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	filter := QueryFilter{}
+	if err := schema.NewDecoder().Decode(&filter, r.Form); err != nil {
+		errMsg := "Error in query parameters"
+		log.Print(errMsg + ": " + err.Error())
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	// For now, the request has to search by email
+	if filter.Email == "" {
+		errMsg := `Missing mandatory "email" query parameter`
+		log.Print(errMsg)
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	user, err := env.DB.GetUserByEmail(filter.Email)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+	if user == nil {
+		errMsg := "User not found"
+		log.Print(errMsg)
+		http.Error(w, errMsg, http.StatusNotFound)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
 }
 
 func parseJSON(w http.ResponseWriter, body io.ReadCloser, bodyObj interface{}) error {

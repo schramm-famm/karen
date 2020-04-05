@@ -144,14 +144,34 @@ func (db *DB) CreateUser(user *User) (int64, error) {
 
 // ReadUser returns one user from the database given userID
 func (db *DB) ReadUser(userID int64) (*User, error) {
-
 	user := &User{}
 	queryString := fmt.Sprintf("SELECT * FROM %s WHERE ID=?", usersTable)
 
 	err := db.QueryRow(queryString, userID).Scan(&(user.ID), &(user.Email), &(user.Name), &(user.Password), &(user.AvatarURL))
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, err
+			return nil, nil
+		}
+		return nil, err
+	}
+	log.Printf(`Read 1 row from "%s"`, usersTable)
+	return user, nil
+}
+
+// GetUserByEmail returns a list of users from the database, filtered by fields.
+func (db *DB) GetUserByEmail(email string) (*User, error) {
+	user := &User{}
+	queryString := fmt.Sprintf("SELECT ID, Name, Email, AvatarURL FROM %s WHERE Email=?", usersTable)
+
+	err := db.QueryRow(queryString, email).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.AvatarURL,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
 		}
 		return nil, err
 	}
