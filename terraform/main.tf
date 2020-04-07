@@ -42,6 +42,7 @@ module "karen" {
   name            = var.name
   container_tag   = var.container_tag
   port            = 80
+  container_count = 1
   cluster_id      = module.ecs_cluster.cluster_id
   security_groups = [aws_security_group.karen.id]
   subnets         = module.ecs_base.vpc_public_subnets

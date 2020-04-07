@@ -76,5 +76,5 @@ resource "aws_ecs_service" "karen" {
     container_port = 80
   }
 
-  desired_count = 1
+  desired_count = var.container_count
 }
